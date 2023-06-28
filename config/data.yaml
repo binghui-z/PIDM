@@ -3,11 +3,12 @@ distributed: False
 data:
     type: data.fashion_data::Dataset
     preprocess_mode: resize_and_crop
-    path: /home/ankanbhunia/Downloads/pidm-demo/dataset/deepfashion
-    num_workers: 8
+    # path: /home/ankanbhunia/Downloads/pidm-demo/dataset/deepfashion
+    path: \\Seuvcl-7011\g\2306_neuhand_data\vcl4k
+    num_workers: 4
     sub_path: 256-256
     resolution: 256
-    scale_param: 0.05
+    scale_param: 0
     train:
       batch_size: 8           # real_batch_size: 4 * 2 (source-->target & target --> source) * 2 (GPUs) = 16
       distributed: False

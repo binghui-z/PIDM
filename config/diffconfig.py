@@ -44,7 +44,8 @@ class DiffusionConfig(MainConfig):
 def get_model_conf():
 
     return BeatGANsAutoencConfig(image_size=256, 
-    in_channels=3+20, 
+    # in_channels=3+20, 
+    in_channels=3+23, 
     model_channels=128, 
     out_channels=3*2,  # also learns sigma
     num_res_blocks=2, 

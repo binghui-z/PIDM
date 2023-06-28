@@ -131,3 +131,5 @@ dmypy.json
 results*/
 __pycache__/
 models/__pycache__/
+wandb
+checkpoints/
