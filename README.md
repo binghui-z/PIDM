@@ -15,7 +15,7 @@
 <img src=Figures/images.gif>
  
 ## News
-
+- **2023.06.27** Clone this repo and modify it!
 - **2023.02** A demo available through Google Colab:
 
     :rocket:
