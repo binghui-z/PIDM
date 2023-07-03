@@ -24,16 +24,17 @@ class Interhand26m(Dataset):
         self.data_root = opt.path
         self.labels_required = labels_required
 
-        self.split = 'test' if not is_inference else 'test'
+        self.split = 'train' if not is_inference else 'train'
         self.data_Lst = glob.glob(os.path.join(self.data_root, self.split, "*.pkl"))
         self.is_inference = is_inference
         self.scale_param = opt.scale_param if not is_inference else 0
+        self.resolution = opt.resolution
             
         self.limbSeq = [[0, 1],[1, 2],[2, 3],[3, 4],[0, 5], [5, 6],[6, 7],[7, 8],[0, 9],[9, 10], 
                     [10, 11],[11, 12],[0, 13], [13, 14],[14, 15],[15, 16],[0, 17],[17, 18],[18, 19],[19, 20]]
         self.colors = [[255, 255, 255], [100, 0, 0], [150, 0, 0],  [200, 0, 0], [255, 0, 0,], [100, 100, 0], [150, 150, 0], [200,  200, 0], [255, 255, 0], 
                     [0, 100, 50], [0, 150, 75], [0, 200, 100], [0, 255, 125], [0, 50, 100], [0, 75, 150], [0,  100, 200], [0, 125, 255], [100, 0, 100], [150, 0, 150], [200, 0, 200], [255, 0, 255]]
-        print("loading dataset: %s, total frame-view paired is %d"%("Interhand26m", len(self.data_Lst)))
+        print("loading dataset: %s, split of %s total frame-view paired is %d"%("Interhand26m", self.split, len(self.data_Lst)))
 
     def __len__(self):
         return len(self.data_Lst)
@@ -46,6 +47,7 @@ class Interhand26m(Dataset):
         source_Dic = data_Dic["view%d"%i]
 
         ref_img = source_Dic["image"]
+        ref_img = cv2.resize(ref_img, dsize=(self.resolution, self.resolution))
         ref_tensor, param = self.get_image_tensor(ref_img)
         if self.labels_required:
             label_ref_tensor = self.get_label_tensor(self.proj_joints(source_Dic["joint_c"], source_Dic["cam_param"]["cameraIn"]), ref_tensor, param) 
@@ -56,6 +58,7 @@ class Interhand26m(Dataset):
         # load target, always at the first, different from zero123  
         target_Dic = data_Dic['view0']
         tgt_img = target_Dic["image"]
+        tgt_img = cv2.resize(tgt_img, dsize=(self.resolution, self.resolution))
         target_image_tensor, param = self.get_image_tensor(tgt_img)
         if self.labels_required:
             target_label_tensor = self.get_label_tensor(self.proj_joints(target_Dic["joint_c"], target_Dic["cam_param"]["cameraIn"]), target_image_tensor, param) 
@@ -107,12 +110,12 @@ class Interhand26m(Dataset):
         canvas = np.zeros((img.shape[1], img.shape[2], 3)).astype(np.uint8)
         keypoint = self.trans_keypoins(keypoint, param, img.shape[1:])
 
-        stickwidth = 4
+        stickwidth = 1
         for i in range(21):
             x, y = keypoint[i, 0:2]
             if x == -1 or y == -1 or np.isnan(x) or np.isnan(y):
                 continue
-            cv2.circle(canvas, (int(x), int(y)), 4, self.colors[i], thickness=-1)
+            cv2.circle(canvas, (int(x), int(y)), 1, self.colors[i], thickness=-1)
         joints = []
         for i in range(20):
             Y = keypoint[np.array(self.limbSeq[i]), 0]

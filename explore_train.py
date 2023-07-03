@@ -103,7 +103,7 @@ def train(conf, loader, val_loader, model, ema, diffusion, betas, optimizer, sch
     loss_mean_list = []
     loss_vb_list = []
  
-    for epoch in range(300):
+    for epoch in range(17, 300):
 
         if is_main_process: print ('#Epoch - '+str(epoch))
 
@@ -227,7 +227,8 @@ def train(conf, loader, val_loader, model, ema, diffusion, betas, optimizer, sch
                     samples = xs[-1].cuda()
 
 
-            grid = torch.cat([(val_img+1)/2, val_pose[:,:3], (samples+1)/2], -1)
+            grid = torch.cat([(val_img+1)/2, val_pose[:,:3], (samples+1)/2], 0)
+            # grid = torch.cat([val_img, val_pose[:,:3], samples], -1)
             
             # gathered_samples = [torch.zeros_like(grid) for _ in range(dist.get_world_size())]
             # dist.all_gather(gathered_samples, grid) 
@@ -238,7 +239,7 @@ def train(conf, loader, val_loader, model, ema, diffusion, betas, optimizer, sch
                 # wandb.log({'samples':wandb.Image(torch.cat(gathered_samples, -2))})
                 # wandb.log({'samples':wandb.Image(grid)})
 
-                grid = torchvision.utils.make_grid(tensor = grid)
+                grid = torchvision.utils.make_grid(tensor = grid, nrow=8)
                 wandb.log({'samples':wandb.Image(grid)})
                 save_image(grid, conf.training.ckpt_path + str(f'/sample_epoch-{epoch}.png'))
 
@@ -319,10 +320,10 @@ if __name__ == "__main__":
     parser.add_argument('--cond_scale', type=int, default=2)
     parser.add_argument('--guidance_prob', type=int, default=0.1)
     parser.add_argument('--sample_algorithm', type=str, default='ddim') # ddpm, ddim
-    parser.add_argument('--batch_size', type=int, default=4)
+    parser.add_argument('--batch_size', type=int, default=8)
     parser.add_argument('--save_wandb_logs_every_iters', type=int, default=50)
     parser.add_argument('--save_checkpoints_every_iters', type=int, default=2000)
-    parser.add_argument('--save_wandb_images_every_epochs', type=int, default=10)
+    parser.add_argument('--save_wandb_images_every_epochs', type=int, default=1)
     parser.add_argument('--device', type=str, default='cuda')
     parser.add_argument('--n_gpu', type=int, default=8)
     parser.add_argument('--n_machine', type=int, default=1)
@@ -332,7 +333,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     print ('Experiment: '+ args.exp_name)
-    args.exp_name = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+    args.exp_name = '64x64-'+time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
 
     DiffConf = DiffConfig(DiffusionConfig,  args.DiffConfigPath, args.opts, False)
     DataConf = DataConfig(args.DataConfigPath)
@@ -340,7 +341,7 @@ if __name__ == "__main__":
     DiffConf.training.ckpt_path = os.path.join(args.save_path, args.exp_name)
     # DataConf.data.path = args.dataset_path
 
-    DiffConf.ckpt = r"checkpoints\2023-06-28_00-56-12\last.pt"
+    DiffConf.ckpt = r"checkpoints\64x64-2023-06-30_20-09-48\last.pt"
     
     if is_main_process():
 
