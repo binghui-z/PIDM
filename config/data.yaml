@@ -4,9 +4,9 @@ data:
     type: data.fashion_data::Dataset
     preprocess_mode: resize_and_crop
     # path: /home/ankanbhunia/Downloads/pidm-demo/dataset/deepfashion
-    path: \\Seuvcl-7016\h\2306_neuhand_data\vcl4k
-    # path: \\Seuvcl-7011\g\2306_pidm\deepfashion
-    num_workers: 4
+    # path: \\Seuvcl-7016\h\2306_neuhand_data\vcl4k
+    path: \\Seuvcl-7016\h\2307_neuhand_data\interhand26m
+    num_workers: 2
     sub_path: 256-256
     resolution: 64
     scale_param: 0

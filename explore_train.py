@@ -103,7 +103,7 @@ def train(conf, loader, val_loader, model, ema, diffusion, betas, optimizer, sch
     loss_mean_list = []
     loss_vb_list = []
  
-    for epoch in range(17, 300):
+    for epoch in range(0, 300):
 
         if is_main_process: print ('#Epoch - '+str(epoch))
 
@@ -320,7 +320,7 @@ if __name__ == "__main__":
     parser.add_argument('--cond_scale', type=int, default=2)
     parser.add_argument('--guidance_prob', type=int, default=0.1)
     parser.add_argument('--sample_algorithm', type=str, default='ddim') # ddpm, ddim
-    parser.add_argument('--batch_size', type=int, default=8)
+    parser.add_argument('--batch_size', type=int, default=2)
     parser.add_argument('--save_wandb_logs_every_iters', type=int, default=50)
     parser.add_argument('--save_checkpoints_every_iters', type=int, default=2000)
     parser.add_argument('--save_wandb_images_every_epochs', type=int, default=1)
@@ -341,7 +341,7 @@ if __name__ == "__main__":
     DiffConf.training.ckpt_path = os.path.join(args.save_path, args.exp_name)
     # DataConf.data.path = args.dataset_path
 
-    DiffConf.ckpt = r"checkpoints\64x64-2023-06-30_20-09-48\last.pt"
+    # DiffConf.ckpt = r"checkpoints\64x64-2023-06-30_20-09-48\last.pt"
     
     if is_main_process():
 

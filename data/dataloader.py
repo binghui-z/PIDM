@@ -25,7 +25,7 @@ class Interhand26m(Dataset):
         self.labels_required = labels_required
 
         self.split = 'train' if not is_inference else 'train'
-        self.data_Lst = glob.glob(os.path.join(self.data_root, self.split, "*.pkl"))
+        self.sub_Lst = glob.glob(os.path.join(self.data_root, self.split, "rgb/*"))
         self.is_inference = is_inference
         self.scale_param = opt.scale_param if not is_inference else 0
         self.resolution = opt.resolution
@@ -34,70 +34,67 @@ class Interhand26m(Dataset):
                     [10, 11],[11, 12],[0, 13], [13, 14],[14, 15],[15, 16],[0, 17],[17, 18],[18, 19],[19, 20]]
         self.colors = [[255, 255, 255], [100, 0, 0], [150, 0, 0],  [200, 0, 0], [255, 0, 0,], [100, 100, 0], [150, 150, 0], [200,  200, 0], [255, 255, 0], 
                     [0, 100, 50], [0, 150, 75], [0, 200, 100], [0, 255, 125], [0, 50, 100], [0, 75, 150], [0,  100, 200], [0, 125, 255], [100, 0, 100], [150, 0, 150], [200, 0, 200], [255, 0, 255]]
-        print("loading dataset: %s, split of %s total frame-view paired is %d"%("Interhand26m", self.split, len(self.data_Lst)))
+        print("loading dataset: %s, split of %s total frame-view paired is %d"%("Interhand26m", self.split, len(self.sub_Lst)))
 
     def __len__(self):
-        return len(self.data_Lst)
+        return len(self.sub_Lst)
 
     def __getitem__(self, index):
-        path_item = self.data_Lst[index]
-        data_Dic = pickle.load(open(path_item, "rb"), encoding="latin1")
-        # print("number of view %d"%len(data_Dic))
-        i = np.random.choice(list(range(1, len(data_Dic))))
-        source_Dic = data_Dic["view%d"%i]
+        subfolder = self.sub_Lst[index]
+        rgb_Lst = glob.glob(os.path.join(subfolder, "*.png"))
 
-        ref_img = source_Dic["image"]
-        ref_img = cv2.resize(ref_img, dsize=(self.resolution, self.resolution))
+        i, j = np.random.choice(list(range(len(rgb_Lst))), 2)
+
+        src_rgb = rgb_Lst[i]
+        src_pose = src_rgb.replace("rgb", "pose").replace("im_cam", "pose_").replace(".png",".pkl")
+        # src_pose = src_rgb.replace("rgb", "pose").replace("im_", "pose_").replace(".png",".pkl")
+        ref_img = Image.open(src_rgb)
+        ref_img = ref_img.resize((self.resolution, self.resolution))
         ref_tensor, param = self.get_image_tensor(ref_img)
+
+        source_Dic = pickle.load(open(src_pose, "rb"), encoding='latin1')
         if self.labels_required:
             label_ref_tensor = self.get_label_tensor(self.proj_joints(source_Dic["joint_c"], source_Dic["cam_param"]["cameraIn"]), ref_tensor, param) 
-        # cv2.imshow("pose_dist", label_ref_tensor[:3].permute(1,2,0).numpy())
-        # cv2.imshow("img_dist", (255*cv2.cvtColor(ref_tensor.permute(1,2,0).numpy(), cv2.COLOR_RGB2BGR)).astype(np.uint8))
-        # cv2.waitKey(-1)
 
-        # load target, always at the first, different from zero123  
-        target_Dic = data_Dic['view0']
-        tgt_img = target_Dic["image"]
-        tgt_img = cv2.resize(tgt_img, dsize=(self.resolution, self.resolution))
-        target_image_tensor, param = self.get_image_tensor(tgt_img)
+
+        tgt_rgb = rgb_Lst[j]
+        tgt_pose = tgt_rgb.replace("rgb", "pose").replace("im_cam", "pose_").replace(".png",".pkl")
+        # tgt_pose = tgt_rgb.replace("rgb", "pose").replace("im_", "pose_").replace(".png",".pkl")
+        tgt_img = Image.open(tgt_rgb)
+        tgt_img = tgt_img.resize((self.resolution, self.resolution))
+        tgt_tensor, param = self.get_image_tensor(tgt_img)
+
+        target_Dic = pickle.load(open(tgt_pose, "rb"), encoding='latin1')
         if self.labels_required:
-            target_label_tensor = self.get_label_tensor(self.proj_joints(target_Dic["joint_c"], target_Dic["cam_param"]["cameraIn"]), target_image_tensor, param) 
+            label_tgt_tensor = self.get_label_tensor(self.proj_joints(target_Dic["joint_c"], target_Dic["cam_param"]["cameraIn"]), tgt_tensor, param) 
 
         # data arguement
         if not self.is_inference:
             if torch.rand(1) < 0.5:
-                target_image_tensor = F.hflip(target_image_tensor)
+                tgt_tensor = F.hflip(tgt_tensor)
                 ref_tensor = F.hflip(ref_tensor)
 
                 if self.labels_required:
-
-                    target_label_tensor = F.hflip(target_label_tensor)
+                    label_tgt_tensor = F.hflip(label_tgt_tensor)
                     label_ref_tensor = F.hflip(label_ref_tensor)
 
         if self.labels_required:
-            input_dict = {'target_skeleton': target_label_tensor,
-                        'target_image': target_image_tensor,
+            input_dict = {'target_skeleton': label_tgt_tensor,
+                        'target_image': tgt_tensor,
                         'source_image': ref_tensor,
                         'source_skeleton': label_ref_tensor,
                         }
         else:
-            input_dict = {'target_image': target_image_tensor,
+            input_dict = {'target_image': tgt_tensor,
                           'source_image': ref_tensor,
                          }
 
         return input_dict
 
     def get_image_tensor(self, cv_Arr):
-        # with self.env.begin(write=False) as txn:
-        #     key = f'{path}'.encode('utf-8')
-        #     img_bytes = txn.get(key) 
-        # buffer = BytesIO(img_bytes)
-        # img = Image.open(cv2.cvtColor())
-
-        img = Image.fromarray(cv2.cvtColor(cv_Arr, cv2.COLOR_BGR2RGB))
-        param = get_random_params(img.size, self.scale_param)
+        param = get_random_params(cv_Arr.size, self.scale_param)
         trans = get_transform(param, normalize=True, toTensor=True)
-        img = trans(img)
+        img = trans(cv_Arr)
         return img, param
 
     def proj_joints(self, joints_cam, camIn):
